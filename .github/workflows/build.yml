@@ -1,0 +1,49 @@
+
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "autoclicker.py"
+      - "requirements.txt"
+      - ".github/workflows/build.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Download source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Tesseract OCR
+        shell: pwsh
+        run: |
+          choco install tesseract --yes --no-progress
+          $src = "C:\Program Files\Tesseract-OCR"
+          New-Item -ItemType Directory -Force tesseract | Out-Null
+          Copy-Item "$src\*" tesseract -Recurse -Force
+          $base = "https://github.com/tesseract-ocr/tessdata_fast/raw/main"
+          Invoke-WebRequest "$base/kor.traineddata" -OutFile "tesseract\tessdata\kor.traineddata"
+          Invoke-WebRequest "$base/chi_sim.traineddata" -OutFile "tesseract\tessdata\chi_sim.traineddata"
+          Invoke-WebRequest "$base/chi_tra.traineddata" -OutFile "tesseract\tessdata\chi_tra.traineddata"
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Build EXE
+        run: >
+          pyinstaller --noconfirm --clean --onefile --windowed
+          --add-data "tesseract;tesseract"
+          autoclicker.py
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Korean-OCR-Autoclicker
+          path: dist/autoclicker.exe
