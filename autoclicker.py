@@ -9,19 +9,17 @@ from PIL import Image
 import os, sys
 
 # Packaged builds look for Tesseract next to the app; local testing may use PATH.
+
 def configure_tesseract():
-    candidates = []
     if getattr(sys, "frozen", False):
-        candidates += [
-            os.path.join(sys._MEIPASS, "tesseract", "tesseract.exe"),
-            os.path.join(os.path.dirname(sys.executable), "tesseract", "tesseract.exe"),
-        ]
-    for path in candidates:
-        if os.path.isfile(path):
-            pytesseract.pytesseract.tesseract_cmd = path
-            return
+        base = os.path.join(sys._MEIPASS, "tesseract")
+        exe = os.path.join(base, "tesseract.exe")
+        if os.path.isfile(exe):
+            pytesseract.pytesseract.tesseract_cmd = exe
+            os.environ["TESSDATA_PREFIX"] = os.path.join(base, "tessdata")
 
 configure_tesseract()
+
 
 MAPPING = {"약": "弱", "중": "中", "강": "強"}
 running = False
